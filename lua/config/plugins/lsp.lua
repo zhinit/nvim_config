@@ -7,6 +7,27 @@ vim.diagnostic.config({
   severity_sort = true,
 })
 
+-- Auto-detect uv .venv for pyright by walking up from the buffer's file
+vim.api.nvim_create_autocmd("LspAttach", {
+  callback = function(args)
+    local client = vim.lsp.get_client_by_id(args.data.client_id)
+    if not client or client.name ~= "pyright" then return end
+
+    local dir = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(args.buf), ":h")
+    while dir ~= "/" do
+      local venv_python = dir .. "/.venv/bin/python"
+      if vim.fn.executable(venv_python) == 1 then
+        client.settings = vim.tbl_deep_extend("force", client.settings or {}, {
+          python = { pythonPath = venv_python },
+        })
+        client:notify("workspace/didChangeConfiguration", { settings = nil })
+        break
+      end
+      dir = vim.fn.fnamemodify(dir, ":h")
+    end
+  end,
+})
+
 -- Mouse hover: show LSP type info when mouse rests over a symbol
 vim.opt.mouse = "a"
 vim.opt.mousemoveevent = true
@@ -80,6 +101,9 @@ return {
         handlers = {
           function(server_name)
             lspconfig[server_name].setup({ capabilities = capabilities })
+          end,
+          ["pyright"] = function()
+            lspconfig.pyright.setup({ capabilities = capabilities })
           end,
           ["lua_ls"] = function()
             lspconfig.lua_ls.setup({
