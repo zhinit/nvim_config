@@ -18,6 +18,14 @@ _G.diagnostic_stl = diagnostic_stl
 
 vim.opt.number = true
 vim.opt.relativenumber = true
+vim.opt.statuscolumn = "%{v:lnum} %{v:relnum} "
+
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "netrw",
+  callback = function()
+    vim.opt_local.statuscolumn = ""
+  end,
+})
 
 local api = vim.api
 
